@@ -17,11 +17,26 @@
 	limitations under the License.
  */
 
-if (!(typeof window.google === 'object' && window.google.maps)) {
-	throw 'Google Maps API is required. Please register the following JavaScript library https://maps.googleapis.com/maps/api/js'
+if (!(typeof window.google === "object" && window.google.maps)) {
+	throw "Google Maps API is required. Please register the following JavaScript library https://maps.googleapis.com/maps/api/js";
 }
 
-function createTravelMap(canvas, destinations) {
+function createTravelMap(canvas, configFile) {
+	// Parse the config file
+	var configRequest = new XMLHttpRequest();
+		configRequest.open("GET", configFile, false);
+	configRequest.send(null);
+	var config = null;
+	try {
+		config = JSON.parse(configRequest.responseText);
+	}
+	catch (err)
+	{
+		err.message = "Error while parsing \"" + configFile + "\": " +
+			err.message;
+		throw err;
+	}
+	
 	// Create the map
 	var mapOptions = {
 		zoom: 8,
@@ -31,16 +46,16 @@ function createTravelMap(canvas, destinations) {
   
 	// Loop over the destinations to get the localisation of each place
 	var boundaries = null;
-	for (i = 0; i < destinations.length; i++) { 
+	for (i = 0; i < config.destinations.length; i++) { 
 		// Create the request
 		var request = "https://maps.googleapis.com/maps/api/geocode/json?address=";
-		request += destinations[i];
+		request += config.destinations[i].name;
 		
 		// Send a request to find the coordinates
-		var xmlHttp = new XMLHttpRequest();
-	    xmlHttp.open( "GET", request, false );
-	    xmlHttp.send( null );
-	    var response = JSON.parse(xmlHttp.responseText);
+		var locRequest = new XMLHttpRequest();
+		locRequest.open( "GET", request, false );
+		locRequest.send( null );
+	    var response = JSON.parse(locRequest.responseText);
 	    if (response.status === 'OK') {
 	    	var localisation = new google.maps.LatLng(
 	    		response.results[0].geometry.location.lat,
