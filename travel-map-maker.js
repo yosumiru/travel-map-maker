@@ -25,10 +25,12 @@ if (!(typeof window.google === "object" && window.google.maps)) {
 function createTravelMap(canvas, configFile) {
 	// Global variables
 	var map;
+	var mapBoundaries;
 	var infowindow;
 	var config;
+	var locIndex;
 
-	// Private method to handle marker click
+	// Handle marker click
 	function handleMarkerClick(marker, i) {
 		// Close the last infowindow
 		if (infowindow) {
@@ -48,7 +50,82 @@ function createTravelMap(canvas, configFile) {
 			maxWidth: 300
 		});
 		infowindow.open(map, marker);
-	}
+	};
+	
+	
+	// Send the geocode request corresponding to locIndex
+	function sendGeocodeRequest() {
+		var request = "https://maps.googleapis.com/maps/api/geocode/json?address=";
+		request += config.destinations[locIndex].name;
+		
+		// Send a request to find the coordinates
+		var locRequest = new XMLHttpRequest();
+		locRequest.onreadystatechange = function() {
+			if (locRequest.readyState==4 && locRequest.status==200)	{
+				parseGeocodeResponse(locRequest, locIndex);
+			}
+		};
+		locRequest.open("GET", request, true);
+		locRequest.send();
+	};
+	
+	// Parse the geocode request response and add the marker corresponding to locIndex
+	// to the map
+	function parseGeocodeResponse(locRequest) {
+		var response = JSON.parse(locRequest.responseText);
+		if (response.status !== 'OK') {
+			throw "The place \"" + config.destinations[locIndex].name + "\" could not be located";
+		}
+		var localisation = new google.maps.LatLng(
+			response.results[0].geometry.location.lat,
+			response.results[0].geometry.location.lng);
+
+		// Add a marker on the map
+		var markerOptions = {
+			map: map,
+			position: localisation,
+			draggable: false,
+			clickable: true/*,
+			anchorPoint: new google.maps.Point(0, 0)*/
+		}
+		var marker = new google.maps.Marker(markerOptions);
+
+		// Handle clicks on the marker
+		google.maps.event.addListener(marker, "click", (function(marker, locIndex){
+				return function(){
+					handleMarkerClick(marker, locIndex);
+				}
+			})(marker, locIndex));
+
+		// Update the boundaries
+		if (mapBoundaries == null) {
+			mapBoundaries = new google.maps.LatLngBounds(
+				localisation,
+				localisation);
+		}
+		else {
+			mapBoundaries.extend(localisation);
+		}
+
+		locIndex++;
+		if (locIndex === config.destinations.length)
+		{
+			// Set the boundaries of the map
+			map.fitBounds(mapBoundaries);
+		}
+		else
+		{
+			// Send the next request
+			sendGeocodeRequest();
+		}
+	};
+
+	// Create the map
+	var mapOptions = {
+		zoom: 8,
+		center: new google.maps.LatLng(0, 0)
+	};
+	map = new google.maps.Map(canvas, mapOptions);
 
 	// Parse the config file
 	var configRequest = new XMLHttpRequest();
@@ -64,59 +141,8 @@ function createTravelMap(canvas, configFile) {
 		throw err;
 	}
 
-	// Create the map
-	var mapOptions = {
-		zoom: 8,
-		center: new google.maps.LatLng(0, 0)
-	};
-	map = new google.maps.Map(canvas, mapOptions);
-
-	// Loop over the destinations to get the localisation of each place
-	var boundaries = null;
-	for (i = 0; i < config.destinations.length; i++) { 
-		// Create the request
-		var request = "https://maps.googleapis.com/maps/api/geocode/json?address=";
-		request += config.destinations[i].name;
-		
-		// Send a request to find the coordinates
-		var locRequest = new XMLHttpRequest();
-		locRequest.open("GET", request, false);
-		locRequest.send(null);
-		var response = JSON.parse(locRequest.responseText);
-		if (response.status !== 'OK') {
-			throw "The place \"" + config.destinations[i].name + "\" could not be located";
-		}
-		var localisation = new google.maps.LatLng(
-			response.results[0].geometry.location.lat,
-			response.results[0].geometry.location.lng);
-
-		// Add a marker on the map
-		var markerOptions = {
-			map: map,
-			position: localisation,
-			draggable: false,
-			clickable: true
-		}
-		var marker = new google.maps.Marker(markerOptions);
-
-		// Handle clicks on the marker
-		google.maps.event.addListener(marker, "click", (function(marker, i){
-				return function(){
-					handleMarkerClick(marker, i);
-				}
-			})(marker, i));
-
-		// Update the boundaries
-		if (boundaries == null) {
-			boundaries = new google.maps.LatLngBounds(
-				localisation,
-				localisation);
-		}
-		else {
-			boundaries.extend(localisation);
-		}
-	}
-
-	// Set the boundaries of the map
-	map.fitBounds(boundaries);
+	// Send the first geolocalisation request (the other ones
+	// will follow)
+	locIndex = 0;
+	sendGeocodeRequest();
 };
