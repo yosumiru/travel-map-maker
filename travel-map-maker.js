@@ -22,12 +22,11 @@ if (!(typeof window.google === "object" && window.google.maps)) {
 		+ "JavaScript library https://maps.googleapis.com/maps/api/js";
 }
 
-function createTravelMap(canvas, configFile) {
+function createTravelMap(canvas, config) {
 	// Global variables
 	var map;
 	var mapBoundaries;
 	var infowindow;
-	var config;
 	var locIndex;
 
 	// Handle marker click
@@ -126,20 +125,6 @@ function createTravelMap(canvas, configFile) {
 		center: new google.maps.LatLng(0, 0)
 	};
 	map = new google.maps.Map(canvas, mapOptions);
-
-	// Parse the config file
-	var configRequest = new XMLHttpRequest();
-	configRequest.open("GET", configFile, false);
-	configRequest.send(null);
-	try {
-		config = JSON.parse(configRequest.responseText);
-	}
-	catch (err)
-	{
-		err.message = "Error while parsing \"" + configFile + "\": "
-			+ err.message;
-		throw err;
-	}
 
 	// Send the first geolocalisation request (the other ones
 	// will follow)
