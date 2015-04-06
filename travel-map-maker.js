@@ -39,7 +39,7 @@ function createTravelMap(canvas, config) {
 		var description = "<h3>" + config.destinations[i].name + "</h3>";
 		if (config.destinations[i].image) {
 			description += "<img src='" + config.destinations[i].image
-			+ "' style='display: block; margin-left: auto; margin-right: auto'></img>";
+			+ "' style='display: block; margin-left: auto; margin-right: auto; height: 180px;'></img>";
 		}
 		description	+= config.destinations[i].description;
 
@@ -84,8 +84,8 @@ function createTravelMap(canvas, config) {
 			map: map,
 			position: localisation,
 			draggable: false,
-			clickable: true/*,
-			anchorPoint: new google.maps.Point(0, 0)*/
+			clickable: true,
+			animation: google.maps.Animation.DROP
 		}
 		var marker = new google.maps.Marker(markerOptions);
 
@@ -107,27 +107,30 @@ function createTravelMap(canvas, config) {
 		}
 
 		locIndex++;
-		if (locIndex === config.destinations.length)
-		{
-			// Set the boundaries of the map
-			map.fitBounds(mapBoundaries);
-		}
-		else
+		if (locIndex !== config.destinations.length)
 		{
 			// Send the next request
-			sendGeocodeRequest();
+			setTimeout(sendGeocodeRequest, 150);
 		}
 	};
+	
+	// Set the default options
+	if (! config.mapZoom) {
+		config.mapZoom = 2;
+	}
+	if (! config.mapCenter) {
+		config.mapCenter = new google.maps.LatLng(40, 0);
+	}
 
 	// Create the map
 	var mapOptions = {
-		zoom: 8,
-		center: new google.maps.LatLng(0, 0)
+		zoom: config.mapZoom,
+		center: config.mapCenter
 	};
 	map = new google.maps.Map(canvas, mapOptions);
 
 	// Send the first geolocalisation request (the other ones
 	// will follow)
 	locIndex = 0;
-	sendGeocodeRequest();
+	setTimeout(sendGeocodeRequest, 400);
 };
