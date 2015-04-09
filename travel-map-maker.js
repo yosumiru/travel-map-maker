@@ -28,6 +28,10 @@ function createTravelMap(canvas, config) {
 	var mapBoundaries;
 	var infowindow;
 	var locIndex;
+	
+	// Global variables used to compute the path
+	var pathDirection;
+	var pathPosition;
 
 	// Handle marker click
 	function handleMarkerClick(marker, i) {
@@ -105,14 +109,87 @@ function createTravelMap(canvas, config) {
 		else {
 			mapBoundaries.extend(localisation);
 		}
+		
+		// Update the path
+		if (pathPosition == null) {
+			pathDirection = new google.maps.LatLng(0, 0);
+			pathPosition = localisation;
+		}
+		else {
+			drawPathTo(localisation);
+		}
 
 		locIndex++;
 		if (locIndex !== config.destinations.length)
 		{
 			// Send the next request
-			setTimeout(sendGeocodeRequest, 150);
+			setTimeout(sendGeocodeRequest, 100);
 		}
 	};
+	
+	// Compute the distance (sort of) between two locations on the map
+	function computeDistance(location1, location2) {
+		return Math.sqrt(Math.pow(location1.lat() - location2.lat(), 2)
+			+ Math.pow(location1.lng() - location2.lng(), 2));
+	}
+	
+	// Compute the norm (sort of) of a vector as a LatLng object
+	function computeNorm(vector) {
+		return Math.sqrt(Math.pow(vector.lat(), 2)
+				+ Math.pow(vector.lng(), 2));
+	}
+	
+	// Draw a curved line between pathPosition and destination on the map.
+	function drawPathTo(destination) {
+		var path = new google.maps.MVCArray();
+		var initialDistance = computeDistance(pathPosition, destination);
+		var currentDistance = initialDistance;
+		// The smaller this coeff is, the smoother and more precise the curve is,
+		// but there may be performance issues, and the curve may orbite a little around destinations
+		// with low values. If bigger than 1 nothing happens.
+		var coeff = 0.05;
+		var maxSpeed = coeff * initialDistance;
+		
+		path.push(pathPosition);
+
+		// Compute each point of the path while we are to far away from our destination
+		while (currentDistance > maxSpeed) {
+			// Normalize the direction to a percentage of the total distance, we don't
+			// want to go too fast otherwise we're going to orbite around our destination
+			var norm = computeNorm(pathDirection);
+			if (norm > maxSpeed) {
+				pathDirection = new google.maps.LatLng(
+					maxSpeed * pathDirection.lat() / norm,
+					maxSpeed * pathDirection.lng() / norm);
+			}
+			
+			// Change a little bit the direction of the path
+			var delta = new google.maps.LatLng(
+				2.5 * coeff * maxSpeed * (destination.lat() - pathPosition.lat()) / currentDistance,
+				2.5 * coeff * maxSpeed * (destination.lng() - pathPosition.lng()) / currentDistance);
+			pathDirection = new google.maps.LatLng(
+				(1 - 2.5 * coeff) * pathDirection.lat() + delta.lat(),
+				(1 - 2.5 * coeff) * pathDirection.lng() + delta.lng());
+			
+			// Update the current position
+			pathPosition = new google.maps.LatLng(pathPosition.lat() + pathDirection.lat(),
+				pathPosition.lng() + pathDirection.lng());
+			currentDistance = computeDistance(pathPosition, destination);
+			
+			path.push(pathPosition);
+		}
+		
+		// Draw the polyline
+		var options = {
+			clickable: false,
+			path: path,
+			map: map,
+			strokeColor: config.polylineColor
+		};
+		var polyline = new google.maps.Polyline(options);
+	}
+	
+	// Main
 	
 	// Set the default options
 	if (! config.mapZoom) {
@@ -120,6 +197,9 @@ function createTravelMap(canvas, config) {
 	}
 	if (! config.mapCenter) {
 		config.mapCenter = new google.maps.LatLng(40, 0);
+	}
+	if (! config.polylineColor) {
+		config.polylineColor = "Tomato";
 	}
 
 	// Create the map
