@@ -43,7 +43,7 @@ The option class has the following attributes:
  
 ### Example
 
-This code will show a small trip between Lyon and Frankfurt:
+This code will show a small trip between Lyon and Berlin:
 
 ```html
 <!DOCTYPE html>
