@@ -89,6 +89,14 @@ function createTravelMap(canvas, config) {
 			position: localisation,
 			draggable: false,
 			clickable: true,
+			icon: {
+	      path: google.maps.SymbolPath.CIRCLE,
+	      fillColor: config.markerColor,
+	      fillOpacity: 1,
+	      scale: 6,
+	      strokeColor: 'DimGray',
+	      strokeWeight: 3
+	    },
 			animation: google.maps.Animation.DROP
 		}
 		var marker = new google.maps.Marker(markerOptions);
@@ -184,7 +192,7 @@ function createTravelMap(canvas, config) {
 			clickable: false,
 			path: path,
 			map: map,
-			strokeColor: config.polylineColor
+			strokeColor: config.pathColor
 		};
 		var polyline = new google.maps.Polyline(options);
 	}
@@ -198,8 +206,11 @@ function createTravelMap(canvas, config) {
 	if (! config.mapCenter) {
 		config.mapCenter = new google.maps.LatLng(40, 0);
 	}
-	if (! config.polylineColor) {
-		config.polylineColor = "Tomato";
+	if (! config.pathColor) {
+		config.pathColor = "Tomato";
+	}
+	if (! config.markerColor) {
+		config.markerColor = "Tomato";
 	}
 
 	// Create the map
