@@ -22,7 +22,7 @@ if (!(typeof window.google === "object" && window.google.maps)) {
 		+ "JavaScript library https://maps.googleapis.com/maps/api/js";
 }
 
-function createTravelMap(canvas, config) {
+function createTravelMap(canvas, steps, options) {
 	// Global variables
 	var map;
 	var mapBoundaries;
@@ -40,12 +40,12 @@ function createTravelMap(canvas, config) {
 			infowindow.close();
 		}
 		// Build the description of the infowindow
-		var description = "<h3>" + config.destinations[i].name + "</h3>";
-		if (config.destinations[i].image) {
-			description += "<img src='" + config.destinations[i].image
+		var description = "<h3>" + steps[i].name + "</h3>";
+		if (steps[i].image) {
+			description += "<img src='" + steps[i].image
 			+ "' style='display: block; margin-left: auto; margin-right: auto; height: 180px;'></img>";
 		}
-		description	+= config.destinations[i].description;
+		description	+= steps[i].description;
 
 		// Create a new infowindow
 		infowindow = new google.maps.InfoWindow({
@@ -59,7 +59,7 @@ function createTravelMap(canvas, config) {
 	// Send the geocode request corresponding to locIndex
 	function sendGeocodeRequest() {
 		var request = "https://maps.googleapis.com/maps/api/geocode/json?address=";
-		request += config.destinations[locIndex].name;
+		request += steps[locIndex].name;
 		
 		// Send a request to find the coordinates
 		var locRequest = new XMLHttpRequest();
@@ -77,7 +77,7 @@ function createTravelMap(canvas, config) {
 	function parseGeocodeResponse(locRequest) {
 		var response = JSON.parse(locRequest.responseText);
 		if (response.status !== 'OK') {
-			throw "The place \"" + config.destinations[locIndex].name + "\" could not be located";
+			throw "The place \"" + steps[locIndex].name + "\" could not be located";
 		}
 		var localisation = new google.maps.LatLng(
 			response.results[0].geometry.location.lat,
@@ -91,7 +91,7 @@ function createTravelMap(canvas, config) {
 			clickable: true,
 			icon: {
 	      path: google.maps.SymbolPath.CIRCLE,
-	      fillColor: config.markerColor,
+	      fillColor: options.markerColor,
 	      fillOpacity: 1,
 	      scale: 6,
 	      strokeColor: 'DimGray',
@@ -128,7 +128,7 @@ function createTravelMap(canvas, config) {
 		}
 
 		locIndex++;
-		if (locIndex !== config.destinations.length)
+		if (locIndex !== steps.length)
 		{
 			// Send the next request
 			setTimeout(sendGeocodeRequest, 100);
@@ -188,35 +188,35 @@ function createTravelMap(canvas, config) {
 		}
 		
 		// Draw the polyline
-		var options = {
+		var lineOptions = {
 			clickable: false,
 			path: path,
 			map: map,
-			strokeColor: config.pathColor
+			strokeColor: options.pathColor
 		};
-		var polyline = new google.maps.Polyline(options);
+		var polyline = new google.maps.Polyline(lineOptions);
 	}
 	
 	// Main
 	
 	// Set the default options
-	if (! config.mapZoom) {
-		config.mapZoom = 2;
+	if (! options.mapZoom) {
+		options.mapZoom = 2;
 	}
-	if (! config.mapCenter) {
-		config.mapCenter = new google.maps.LatLng(40, 0);
+	if (! options.mapCenter) {
+		options.mapCenter = new google.maps.LatLng(40, 0);
 	}
-	if (! config.pathColor) {
-		config.pathColor = "Tomato";
+	if (! options.pathColor) {
+		options.pathColor = "Tomato";
 	}
-	if (! config.markerColor) {
-		config.markerColor = "Tomato";
+	if (! options.markerColor) {
+		options.markerColor = "Tomato";
 	}
 
 	// Create the map
 	var mapOptions = {
-		zoom: config.mapZoom,
-		center: config.mapCenter
+		zoom: options.mapZoom,
+		center: options.mapCenter
 	};
 	map = new google.maps.Map(canvas, mapOptions);
 
